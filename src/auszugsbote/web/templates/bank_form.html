@@ -1,0 +1,94 @@
+{% extends "base.html" %}{% from "_macros.html" import icon, bank_badge %}
+{% block title %}{{ "Bankzugang hinzufügen" if neu else bank.name }}{% endblock %}
+{% block content %}
+<form method="post" action="/banken/{{ bank.id }}" autocomplete="off">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<div class="top">
+  <div><h1>{{ "Bankzugang hinzufügen" if neu else bank.name }}</h1>
+    <div class="sub">{{ "Einmalig einrichten, danach läuft alles automatisch." if neu else "Zugangsdaten und Konten" }}</div></div>
+  <div style="display:flex;gap:10px">
+    <a class="btn" href="/banken">Zurück</a>
+    <button class="btn" name="aktion" value="speichern">Speichern</button>
+    <button class="btn pri" name="aktion" value="test">{{ icon("refresh") }}Speichern &amp; Verbindung testen</button>
+  </div>
+</div>
+
+{% if neu %}
+<div class="card" style="margin-bottom:18px"><div class="bd" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+  <span class="muted small" style="margin-right:6px">Vorlage:</span>
+  {% for key, p in presets.items() %}<a class="btn sm {{ 'pri' if key == preset }}" href="/banken/neu?preset={{ key }}">{{ p.name }}</a>{% endfor %}
+  <a class="btn sm {{ 'pri' if not preset }}" href="/banken/neu">Andere Bank</a>
+</div></div>
+{% endif %}
+{% if hinweis %}<div class="banner" style="background:var(--acc-soft);border-color:#c9d9fb;color:#23427e">{{ icon("warn") }}<div>{{ hinweis }}</div></div>{% endif %}
+
+<div class="cols">
+<div class="card"><div class="hd"><h2>Zugangsdaten</h2>
+  <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" name="aktiv" {{ "checked" if bank.aktiv }}> aktiv</label></div>
+<div class="bd"><div class="fg">
+  <div><label class="f">Name</label><input class="inp" name="name" value="{{ bank.name }}" required placeholder="z. B. DKB"></div>
+  <div><label class="f">Art</label><select class="inp" name="typ">
+    <option value="fints" {{ "selected" if bank.typ == "fints" }}>FinTS (PIN/TAN)</option>
+    <option value="demo" {{ "selected" if bank.typ == "demo" }}>Demo (erfundene Daten)</option></select></div>
+  <div><label class="f">Bankleitzahl</label><input class="inp mono" name="blz" value="{{ bank.blz }}" inputmode="numeric" placeholder="8 Ziffern"></div>
+  <div><label class="f">FinTS-Adresse</label><input class="inp mono" name="url" value="{{ bank.url }}" placeholder="https://…"></div>
+  <div><label class="f">Anmeldename / Teilnehmernr.</label><input class="inp" name="login" placeholder="{{ '•••••• (gespeichert – leer lassen = unverändert)' if hat_login else '' }}"></div>
+  <div><label class="f">PIN / Passwort</label><input class="inp" type="password" name="pin" autocomplete="new-password" placeholder="{{ '•••••• (gespeichert)' if hat_pin else '' }}"></div>
+  <div class="full"><label class="f">Kundenkennung <span class="muted" style="font-weight:500">(nur falls abweichend vom Anmeldenamen)</span></label><input class="inp" name="customer_id" placeholder="meist leer lassen"></div>
+  <div><label class="f">TAN-Verfahren</label>
+    {% if test and test.tan_verfahren %}<select class="inp" name="tan_verfahren">
+      {% for code, name in test.tan_verfahren %}<option value="{{ code }}" {{ "selected" if code == bank.tan_verfahren }}>{{ name }} ({{ code }})</option>{% endfor %}</select>
+    {% else %}<input class="inp mono" name="tan_verfahren" value="{{ bank.tan_verfahren or '' }}" placeholder="automatisch beim Test">{% endif %}</div>
+  <div><label class="f">TAN-Medium <span class="muted" style="font-weight:500">(optional)</span></label><input class="inp" name="tan_medium" value="{{ bank.tan_medium or '' }}" placeholder="z. B. Name des Handys"></div>
+  <div><label class="f">PDF-Verfahren</label><select class="inp" name="pdf_verfahren">
+    <option value="auto" {{ "selected" if bank.pdf_verfahren == "auto" }}>automatisch</option>
+    <option value="hkekp" {{ "selected" if bank.pdf_verfahren == "hkekp" }}>nur HKEKP</option>
+    <option value="hkeka" {{ "selected" if bank.pdf_verfahren == "hkeka" }}>nur HKEKA</option></select></div>
+  <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:8px">
+    <label class="small" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="camt_ablegen" {{ "checked" if bank.camt_ablegen }}> Umsätze zusätzlich als camt-XML ablegen</label>
+    {% if not neu %}<label class="small" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="state_reset"> Gespeicherte Bankparameter zurücksetzen</label>{% endif %}
+  </div>
+</div>
+<div class="flash" style="background:var(--acc-soft);color:#23427e;margin:16px 0 0">{{ icon("lock") }}<div>Anmeldename und PIN werden <b>nur verschlüsselt</b> im Tresor gespeichert (AES-256-GCM). Sie erscheinen nie in Logs oder in der Oberfläche. TANs werden nie gespeichert.</div></div>
+</div></div>
+
+<div class="stack">
+<div class="card"><div class="hd"><h2>Verbindungstest</h2>
+  {% if test %}<span class="pill {{ 'ok' if test.ok else 'err' }}">{{ "erfolgreich" if test.ok else "fehlgeschlagen" }} · {{ "%.1f"|format(test.dauer) }} s</span>{% else %}<span class="pill mute">noch nicht getestet</span>{% endif %}</div>
+  {% if test and test.ok %}
+    {% set rows = [("konten", "HKSPA", "SEPA-Konten lesen", test.konten|length ~ " Konten gefunden"),
+                   ("auszugsuebersicht", "HKKAU", "Übersicht der Kontoauszüge", "zeigt, welche Auszüge abholbereit sind"),
+                   ("pdf_hkekp", "HKEKP", "PDF-Kontoauszug", "wird bevorzugt verwendet"),
+                   ("pdf_hkeka", "HKEKA", "Kontoauszug als PDF", "Rückfall, falls HKEKP fehlt"),
+                   ("camt", "HKCAZ", "Umsätze als camt (XML)", "für Banken ohne PDF"),
+                   ("quittung", "HKQTG", "Empfangsquittung", "noch nicht unterstützt")] %}
+    {% for key, code, label, sub in rows %}
+      <div class="cap">{% if test.caps[key] %}<span class="okc">✓</span>{% else %}<span class="nok">–</span>{% endif %}
+        <span class="c">{{ code }}</span><span class="t">{{ label }}<small>{{ sub }}</small></span></div>
+    {% endfor %}
+  {% elif test %}<div class="bd err-text">{{ test.fehler }}</div>
+  {% else %}<div class="empty">Speichern und „Verbindung testen“ klicken. Dabei fragt die Bank ggf. eine Freigabe in der App ab.</div>{% endif %}
+</div>
+
+{% if bank.konten %}
+<div class="card"><div class="hd"><h2>Konten</h2><span class="muted small">{{ bank.konten|selectattr("aktiv")|list|length }} von {{ bank.konten|length }} aktiv</span></div>
+  {% for k in bank.konten %}{% set n = test.abholbereit(k.iban) if test else none %}
+    <div class="acc"><input type="checkbox" name="konto_aktiv_{{ k.iban }}" {{ "checked" if k.aktiv }} style="width:18px;height:18px;accent-color:var(--acc)">
+      <div style="flex:1"><input class="inp" name="konto_name_{{ k.iban }}" value="{{ k.name }}" style="min-height:32px;padding:5px 10px;max-width:220px">
+        <div class="mono muted" style="margin-top:4px">{{ k.iban|iban_mask }}</div></div>
+      {% if n is not none %}<span class="pill {{ 'ok' if n else 'mute' }}">{{ n }} Auszüge abholbereit</span>{% endif %}
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not neu %}
+<div style="display:flex;justify-content:flex-end">
+  <button class="btn danger" formaction="/banken/{{ bank.id }}/loeschen" formnovalidate
+          onclick="return confirm('Bankzugang und gespeicherte Zugangsdaten löschen? Bereits abgelegte Dateien bleiben erhalten.')">{{ icon("x") }}Bankzugang löschen</button>
+</div>
+{% endif %}
+</div>
+</div>
+</form>
+{% endblock %}

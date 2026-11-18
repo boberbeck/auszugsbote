@@ -1,0 +1,22 @@
+{% from "_macros.html" import icon %}{% extends "auth_base.html" %}{% block title %}Einrichtung{% endblock %}
+{% block content %}
+<h1 style="font-size:20px;margin-bottom:4px">Willkommen</h1>
+<p class="muted small" style="margin-bottom:18px">Einmalige Einrichtung. Danach läuft alles automatisch.</p>
+<form method="post" action="/setup" class="stack" style="gap:14px">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  {% if need_web %}
+  <div><label class="f">Login-Passwort für diese Oberfläche</label><input class="inp" type="password" name="web_password" autocomplete="new-password" minlength="10" required></div>
+  <div><label class="f">Login-Passwort wiederholen</label><input class="inp" type="password" name="web_password2" autocomplete="new-password" minlength="10" required></div>
+  {% endif %}
+  {% if need_vault %}
+    {% if keyfile_exists %}
+      <div class="flash ok" style="margin:0">{{ icon("lock") }}<div>Schlüsseldatei gefunden (<span class="mono">{{ keyfile }}</span>). Der Tresor wird damit verschlüsselt und nach jedem Neustart automatisch entsperrt.</div></div>
+    {% else %}
+      <div class="banner" style="margin:0">{{ icon("warn") }}<div>Keine Schlüsseldatei unter <span class="mono">{{ keyfile }}</span>. Ohne sie wird der Tresor mit einem <b>Master-Passwort</b> geschützt – dann musst du nach jedem Neustart entsperren, und geplante Abrufe warten so lange.</div></div>
+      <div><label class="f">Master-Passwort für den Tresor (mind. 12 Zeichen)</label><input class="inp" type="password" name="master" autocomplete="new-password" minlength="12" required></div>
+      <div><label class="f">Master-Passwort wiederholen</label><input class="inp" type="password" name="master2" autocomplete="new-password" minlength="12" required></div>
+    {% endif %}
+  {% endif %}
+  <button class="btn pri" style="justify-content:center">Einrichten</button>
+</form>
+{% endblock %}

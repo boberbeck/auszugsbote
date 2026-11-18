@@ -1,0 +1,46 @@
+{% extends "base.html" %}{% from "_macros.html" import icon %}
+{% block title %}Ablage & Zeitplan{% endblock %}
+{% block content %}
+<form method="post" action="/ablage">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<div class="top"><div><h1>Ablage &amp; Zeitplan</h1><div class="sub">Wohin die Auszüge gespeichert werden und wann abgerufen wird</div></div>
+  <div style="display:flex;gap:10px"><button class="btn" name="aktion" value="testdatei">Testdatei schreiben</button><button class="btn pri" name="aktion" value="speichern">Speichern</button></div></div>
+
+<div class="cols w">
+<div class="card">
+  <div class="sec"><h3>Freigegebener Ordner</h3>
+    <div class="fg">
+      <div><label class="f">Pfad im Container</label><input class="inp mono" name="pfad" value="{{ cfg.ablage.pfad }}"></div>
+      <div><label class="f">Anzeigename <span class="muted" style="font-weight:500">(nur Anzeige)</span></label><input class="inp mono" name="anzeige_pfad" value="{{ cfg.ablage.anzeige_pfad }}" placeholder="\\NAS\Finanzen\Kontoauszuege"></div>
+    </div>
+    <div class="hint row"><span class="dot {{ '' if check[0] else 'err' }}" style="margin-top:4px"></span>{{ check[1] }}</div>
+  </div>
+  <div class="sec"><h3>Ordnerstruktur &amp; Dateiname</h3>
+    <label class="f">Muster</label>
+    <input class="inp mono" name="muster" value="{{ cfg.ablage.muster }}" hx-post="/ablage/vorschau" hx-trigger="input changed delay:300ms" hx-target="#vorschau">
+    <div class="hint">Platzhalter: {% for p in platzhalter %}<span class="mono">{{ "{" ~ p ~ "}" }}</span> {% endfor %} · „/“ trennt Ordner</div>
+  </div>
+  <div class="sec"><h3>Paperless (optional)</h3>
+    <label class="f">Zusätzlich kopieren in Consume-Ordner</label>
+    <input class="inp mono" name="paperless_consume" value="{{ cfg.ablage.paperless_consume }}" placeholder="z. B. /data/paperless-consume (leer = aus)">
+    <div class="hint">Paperless übernimmt die Datei dann automatisch, inklusive Zuordnungsregeln für Korrespondent und Dokumenttyp.</div>
+  </div>
+  <div class="sec"><h3>Zeitplan</h3>
+    <div class="fg">
+      <div><label class="f">Häufigkeit</label><select class="inp" name="modus">
+        {% for v, l in [("taeglich", "täglich"), ("woechentlich", "wöchentlich"), ("monatlich", "monatlich"), ("manuell", "nur manuell")] %}
+        <option value="{{ v }}" {{ "selected" if cfg.zeitplan.modus == v }}>{{ l }}</option>{% endfor %}</select></div>
+      <div><label class="f">Uhrzeit</label><input class="inp" type="time" name="uhrzeit" value="{{ cfg.zeitplan.uhrzeit }}"></div>
+      <div><label class="f">Wochentag <span class="muted" style="font-weight:500">(wöchentlich)</span></label><select class="inp" name="wochentag">
+        {% for t in ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"] %}<option value="{{ loop.index0 }}" {{ "selected" if cfg.zeitplan.wochentag == loop.index0 }}>{{ t }}</option>{% endfor %}</select></div>
+      <div><label class="f">Tag im Monat <span class="muted" style="font-weight:500">(monatlich, 1–28)</span></label><input class="inp" type="number" min="1" max="28" name="monatstag" value="{{ cfg.zeitplan.monatstag }}"></div>
+    </div>
+    <div class="hint">Täglich prüfen kostet nichts: Die Auszugsübersicht meldet nur, ob etwas Neues bereitliegt. Nächster Lauf: <b>{{ next_run|ts("%d.%m.%Y %H:%M") if next_run else "—" }}</b></div>
+  </div>
+</div>
+<div class="card"><div class="hd"><h2>Vorschau</h2><span class="muted small">Beispiele</span></div>
+  <div class="prev" id="vorschau">{% for v in vorschau %}<div>{{ v }}</div>{% else %}<div class="err-text">Muster ungültig</div>{% endfor %}</div>
+</div>
+</div>
+</form>
+{% endblock %}

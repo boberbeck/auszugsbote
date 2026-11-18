@@ -1,0 +1,23 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# Laufzeitdaten und Geheimnisse – niemals committen
+/data/
+/secrets/
+.env
+*.db
+*.db-journal
+config.yaml
+vault_key
+*.key
+
+# Editor/OS
+.DS_Store
+.idea/
+.vscode/

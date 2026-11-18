@@ -1,0 +1,16 @@
+{% from "_macros.html" import icon %}{% extends "auth_base.html" %}{% block title %}Tresor entsperren{% endblock %}
+{% block content %}
+<h1 style="font-size:20px;margin-bottom:4px">Tresor entsperren</h1>
+{% if msg %}<div class="flash err">{{ icon("warn") }}{{ msg }}</div>{% endif %}
+<form method="post" action="/entsperren" class="stack" style="gap:14px;margin-top:14px">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  {% if mode == "password" %}
+    <p class="muted small">Der Tresor ist mit einem Master-Passwort geschützt. Bis du entsperrst, laufen keine Abrufe.</p>
+    <div><label class="f">Master-Passwort</label><input class="inp" type="password" name="master" autocomplete="current-password" autofocus required></div>
+  {% else %}
+    <p class="muted small">Der Tresor nutzt eine Schlüsseldatei. Stelle sicher, dass sie im Container liegt, und versuche es erneut.</p>
+  {% endif %}
+  <button class="btn pri" style="justify-content:center">Entsperren</button>
+</form>
+<form method="post" action="/logout" style="margin-top:10px"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn" style="width:100%;justify-content:center">Abmelden</button></form>
+{% endblock %}

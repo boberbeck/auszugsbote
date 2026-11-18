@@ -1,0 +1,39 @@
+# Auszugsbote – Beispiel für Docker Compose
+#
+# Vorbereitung (einmalig):
+#   mkdir -p data secrets
+#   docker run --rm boberbeck/auszugsbote genkey > secrets/vault_key
+#   chmod 0400 secrets/vault_key && sudo chown 1000:1000 secrets/vault_key data
+#   cp .env.example .env   # SMB-Zugang eintragen
+#
+services:
+  auszugsbote:
+    image: boberbeck/auszugsbote:latest
+    # build: .            # alternativ selbst bauen
+    container_name: auszugsbote
+    restart: unless-stopped
+    ports:
+      - "8080:8080"       # nur im Heimnetz erreichbar machen!
+    environment:
+      TZ: Europe/Berlin
+    volumes:
+      - ./data:/data                     # Konfiguration, Tresor, Zustand
+      - kontoauszuege:/data/ablage       # freigegebener Ordner (SMB)
+      # - /pfad/zu/paperless/consume:/consume   # optional, dann in der Oberfläche eintragen
+    secrets:
+      - vault_key
+
+volumes:
+  # Variante A: SMB-Freigabe direkt per Docker einhängen
+  kontoauszuege:
+    driver: local
+    driver_opts:
+      type: cifs
+      device: "//${SMB_HOST}/${SMB_SHARE}"
+      o: "username=${SMB_USER},password=${SMB_PASSWORD},uid=1000,gid=1000,file_mode=0640,dir_mode=0750,vers=3.0"
+  # Variante B: auf dem Host eingehängten Ordner nutzen – dann oben stattdessen:
+  #   - /mnt/nas/kontoauszuege:/data/ablage
+
+secrets:
+  vault_key:
+    file: ./secrets/vault_key

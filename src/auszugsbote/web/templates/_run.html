@@ -1,0 +1,65 @@
+{% from "_macros.html" import icon %}
+{% set p = run.pending %}
+<div id="run-modal" class="ov"{% if run.running %} hx-get="/laeufe/aktuell" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+<div class="modal">
+  <div class="mh">
+    <div class="phone {{ 'done' if not run.running and run.status == 'ok' else 'fail' if not run.running and run.status in ('fehler', 'abgebrochen') else '' }}">
+      {{ icon("phone" if p else "check" if not run.running and run.status == "ok" else "x" if not run.running and run.status in ("fehler", "abgebrochen") else "refresh") }}
+      {% if p %}<span class="ping"></span>{% endif %}</div>
+    <div>
+      <div class="muted small">{{ "Verbindungstest" if run.mode == "test" else "Abruf" }} #{{ run.id }} · {{ "läuft" if run.running else run.status }}</div>
+      <h2>{% if p and p.decoupled %}Bitte in der {{ p.bank_name }}-App bestätigen
+          {% elif p %}TAN für {{ p.bank_name }} eingeben
+          {% elif run.running %}Abruf läuft …
+          {% elif run.status == "ok" %}{{ "Verbindung erfolgreich" if run.mode == "test" else (run.new_files|length ~ " neue Datei(en) abgelegt") }}
+          {% elif run.status == "teilweise" %}Teilweise erfolgreich
+          {% elif run.status == "abgebrochen" %}Abgebrochen
+          {% else %}Fehlgeschlagen{% endif %}</h2>
+    </div>
+  </div>
+  <div class="mb">
+    {% if p %}
+      {% if p.decoupled %}
+        <p>{{ p.bank_name }} verlangt eine Freigabe (starke Kundenauthentifizierung). Öffne die Banking-App und bestätige den Auftrag. Auszugsbote prüft automatisch alle paar Sekunden – eine TAN musst du nicht eintippen.</p>
+      {% else %}
+        <p>{{ p.bank_name }} verlangt eine TAN für diesen Auftrag.</p>
+        {% if matrix %}<img class="matrix" src="{{ matrix }}" alt="TAN-Grafik">{% endif %}
+      {% endif %}
+      <div class="box">
+        <span class="k">Auftrag</span><span><b>{{ p.order }}</b></span>
+        {% if p.text %}<span class="k">Hinweis der Bank</span><span>{{ p.text }}</span>{% endif %}
+        <span class="k">Verfahren</span><span>{{ "Banking-App · entkoppelt" if p.decoupled else "TAN-Eingabe" }}</span>
+        <span class="k">Gültig noch</span><span><b>{{ run.tan_remaining // 60 }}:{{ "%02d"|format(run.tan_remaining % 60) }} min</b></span>
+      </div>
+      {% if not p.decoupled %}
+        <form hx-post="/laeufe/aktuell/tan" hx-target="#run-modal" hx-swap="outerHTML" style="display:flex;gap:10px">
+          <input id="tan-input" hx-preserve="true" class="inp mono" name="tan" autocomplete="one-time-code" inputmode="numeric" placeholder="TAN" required autofocus>
+          <button class="btn pri">Senden</button>
+        </form>
+      {% endif %}
+      {% if p.demo %}
+        <button class="btn pri" hx-post="/laeufe/aktuell/demo-freigabe" hx-target="#run-modal" hx-swap="outerHTML">{{ icon("check") }}Demo: Freigabe in der App simulieren</button>
+        <span class="muted small" style="margin-left:8px">sonst automatisch nach wenigen Sekunden</span>
+      {% endif %}
+    {% endif %}
+    <ul class="steps">
+      {% for e in run.events[-12:] %}
+        <li><span class="st {{ e.level }}">{% if e.level == "ok" %}✓{% elif e.level == "error" %}!{% elif e.level == "warn" %}!{% elif e.level == "tan" %}…{% else %}·{% endif %}</span><span>{{ e.text }}</span></li>
+      {% endfor %}
+      {% if run.running and not p %}<li><span class="st run"></span><b>Arbeite …</b></li>{% endif %}
+    </ul>
+  </div>
+  <div class="mf">
+    {% if run.running %}
+      <span class="note">{{ "Push an Home Assistant gesendet" if p and cfg.benachrichtigung.ha_service else "" }}</span>
+      <span style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn" hx-post="/laeufe/aktuell/abbrechen" hx-target="#run-modal" hx-swap="outerHTML">Abbrechen</button>
+        <button class="btn" onclick="document.getElementById('run-modal').remove()">Im Hintergrund weiter</button>
+      </span>
+    {% else %}
+      <span class="note">Dauer {{ ((run.finished - run.started)|round(1)) }} s</span>
+      <span style="margin-left:auto"><button class="btn pri" onclick="location.reload()">Schließen</button></span>
+    {% endif %}
+  </div>
+</div>
+</div>

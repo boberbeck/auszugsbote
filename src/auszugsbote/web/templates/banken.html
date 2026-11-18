@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% from "_macros.html" import icon, bank_badge %}
+{% block title %}Bankzugänge{% endblock %}
+{% block content %}
+<div class="top"><div><h1>Bankzugänge</h1><div class="sub">Zugangsdaten liegen verschlüsselt im Tresor</div></div>
+  <a class="btn pri" href="/banken/neu">{{ icon("plus") }}Bankzugang hinzufügen</a></div>
+<div class="card">
+  {% for b in cfg.banken %}{% set t = tests.get(b.id) %}
+    <div class="acc">{{ bank_badge(b) }}
+      <div><div class="n"><a href="/banken/{{ b.id }}" style="color:inherit">{{ b.name }}</a></div>
+        <div class="i">{{ "Demo" if b.typ == "demo" else "FinTS · BLZ " ~ (b.blz or "—") }} · {{ b.konten|length }} Konten</div></div>
+      <div class="r" style="flex-direction:row;align-items:center;gap:10px">
+        {% if not b.aktiv %}<span class="pill mute">inaktiv</span>
+        {% elif t and t.ok %}<span class="pill ok">Test ok · {{ t.when|ts }}</span>
+        {% elif t %}<span class="pill err">Test fehlgeschlagen</span>
+        {% else %}<span class="pill mute">nicht getestet</span>{% endif %}
+        <button class="btn sm" hx-post="/laeufe" hx-vals='{"bank": "{{ b.id }}"}' hx-target="#run-slot">{{ icon("refresh") }}Abrufen</button>
+        <a class="btn sm" href="/banken/{{ b.id }}">Bearbeiten</a>
+      </div>
+    </div>
+  {% else %}<div class="empty">Noch kein Bankzugang. <a href="/banken/neu">Jetzt anlegen</a></div>{% endfor %}
+</div>
+{% endblock %}

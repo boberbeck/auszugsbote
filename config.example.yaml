@@ -1,0 +1,31 @@
+# Beispiel für /data/config.yaml – wird normalerweise über die Oberfläche gepflegt.
+# Hier stehen KEINE Geheimnisse. PINs, Logins, Produkt-ID und Tokens liegen im Tresor (vault.db).
+ablage:
+  pfad: /data/ablage
+  anzeige_pfad: '\\NAS\Finanzen\Kontoauszuege'
+  muster: '{jahr}/{bank}/{jahr}-{monat}_{bank}_{kontoname}-{iban4}_Nr{nr}.pdf'
+  camt_muster: '{jahr}/{bank}/{jahr}-{monat}_{bank}_{kontoname}-{iban4}_Umsaetze.camt.xml'
+  paperless_consume: ''
+  dateirechte: '0640'
+zeitplan:
+  modus: taeglich        # taeglich | woechentlich | monatlich | manuell
+  uhrzeit: '06:30'
+  wochentag: 0           # 0 = Montag
+  monatstag: 1
+benachrichtigung:
+  ha_url: ''             # z. B. http://homeassistant.local:8123
+  ha_service: ''         # z. B. notify.mobile_app_handy
+tan_timeout_sekunden: 300
+banken:
+  - id: demobank
+    name: Demobank
+    typ: demo
+  - id: dkb
+    name: DKB
+    typ: fints
+    blz: '12030000'
+    url: https://fints.dkb.de/fints
+    pdf_verfahren: auto  # auto | hkekp | hkeka
+    camt_ablegen: false
+    aktiv: true
+    konten: []           # werden beim ersten Verbindungstest automatisch ergänzt

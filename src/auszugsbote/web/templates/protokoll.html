@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Protokoll{% endblock %}
+{% block content %}
+<div class="top"><div><h1>Protokoll</h1><div class="sub">Läufe und Meldungen – ohne PINs, TANs oder Kontoinhalte</div></div></div>
+<div class="cols w">
+<div class="card"><div class="hd"><h2>Meldungen</h2></div>
+  {% if logs %}<table><tr><th>Zeit</th><th>Lauf</th><th>Bank</th><th>Meldung</th></tr>
+  {% for l in logs %}<tr><td style="white-space:nowrap">{{ l.ts|ts("%d.%m. %H:%M:%S") }}</td><td>#{{ l.run_id or "–" }}</td><td>{{ l.bank_id or "" }}</td>
+    <td class="lvl-{{ l.level }}">{{ l.message }}</td></tr>{% endfor %}</table>
+  {% else %}<div class="empty">Noch keine Meldungen.</div>{% endif %}
+</div>
+<div class="card"><div class="hd"><h2>Läufe</h2></div>
+  {% if runs %}<table><tr><th>#</th><th>Start</th><th>Art</th><th>Status</th><th>Ergebnis</th></tr>
+  {% for r in runs %}<tr><td>{{ r.id }}</td><td>{{ r.started|ts }}</td><td>{{ r.trigger }}</td>
+    <td><span class="pill {{ 'ok' if r.status == 'ok' else 'warn' if r.status in ('teilweise', 'laeuft') else 'err' }}">{{ r.status }}</span></td>
+    <td class="small">{{ r.summary or "" }}</td></tr>{% endfor %}</table>
+  {% else %}<div class="empty">Noch keine Läufe.</div>{% endif %}
+</div>
+</div>
+{% endblock %}

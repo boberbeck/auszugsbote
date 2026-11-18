@@ -1,0 +1,32 @@
+{% extends "base.html" %}{% from "_macros.html" import icon %}
+{% block title %}Einstellungen{% endblock %}
+{% block content %}
+<form method="post" action="/einstellungen" autocomplete="off">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<div class="top"><div><h1>Einstellungen</h1><div class="sub">Produkt-ID, Benachrichtigung, Login</div></div><button class="btn pri">Speichern</button></div>
+<div class="cols">
+<div class="stack">
+<div class="card"><div class="hd"><h2>FinTS-Produkt-ID</h2><span class="pill {{ 'ok' if produkt_id else 'warn' }}">{{ "hinterlegt" if produkt_id else "fehlt" }}</span></div><div class="bd">
+  <label class="f">Produkt-Registrierungsnummer</label>
+  <input class="inp mono" name="product_id" placeholder="{{ '•••••• (gespeichert – leer lassen = unverändert)' if produkt_id else 'von registrierung@hbci-zka.de' }}">
+  <div class="hint">Kostenlos bei der Deutschen Kreditwirtschaft beantragen (Formular auf fints.org, Kategorie „Web-Server“). Die Nummer ist persönlich: nicht veröffentlichen, nicht committen. Sie wird verschlüsselt im Tresor gespeichert.</div>
+</div></div>
+<div class="card"><div class="hd"><h2>Freigaben</h2></div><div class="bd">
+  <label class="f">Wartezeit auf App-Freigabe / TAN (Sekunden)</label>
+  <input class="inp" type="number" min="60" max="900" name="tan_timeout" value="{{ cfg.tan_timeout_sekunden }}">
+</div></div>
+</div>
+<div class="stack">
+<div class="card"><div class="hd"><h2>Home Assistant (optional)</h2></div><div class="bd"><div class="fg">
+  <div class="full"><label class="f">Adresse</label><input class="inp mono" name="ha_url" value="{{ cfg.benachrichtigung.ha_url }}" placeholder="http://homeassistant.local:8123"></div>
+  <div><label class="f">Dienst</label><input class="inp mono" name="ha_service" value="{{ cfg.benachrichtigung.ha_service }}" placeholder="notify.mobile_app_handy"></div>
+  <div><label class="f">Langlebiges Zugriffstoken</label><input class="inp" type="password" name="ha_token" placeholder="{{ '•••••• (gespeichert)' if ha_token else '' }}"></div>
+</div><div class="hint">Push, wenn eine Bank eine Freigabe braucht, und nach geplanten Läufen mit neuen Dateien oder Fehlern.</div></div></div>
+<div class="card"><div class="hd"><h2>Login-Passwort ändern</h2></div><div class="bd"><div class="fg">
+  <div><label class="f">Neues Passwort</label><input class="inp" type="password" name="web_password" autocomplete="new-password"></div>
+  <div><label class="f">Wiederholen</label><input class="inp" type="password" name="web_password2" autocomplete="new-password"></div>
+</div></div></div>
+</div>
+</div>
+</form>
+{% endblock %}

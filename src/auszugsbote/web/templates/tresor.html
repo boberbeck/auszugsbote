@@ -1,0 +1,33 @@
+{% extends "base.html" %}{% from "_macros.html" import icon %}
+{% block title %}Tresor{% endblock %}
+{% block content %}
+<div class="top"><div><h1>Tresor</h1><div class="sub">So werden deine Bankzugänge gespeichert</div></div>
+  <form method="post" action="/tresor/sperren"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="btn">{{ icon("lock") }}Tresor sperren</button></form></div>
+<div class="cols">
+<div class="stack">
+<div class="card"><div class="hd"><h2>Status</h2><span class="pill ok"><span class="dot"></span>entsperrt</span></div><div class="bd"><div class="kv">
+  <span class="k">Datei</span><span class="mono">{{ core.vault.path }}</span>
+  <span class="k">Verschlüsselung</span><span>AES-256-GCM, je Eintrag eigener Nonce, Name als AAD gebunden</span>
+  <span class="k">Schlüsselquelle</span><span>{% if mode == "keyfile" %}Schlüsseldatei <span class="mono">{{ keyfile }}</span><br><span class="muted small">automatisch entsperrt nach Neustart</span>
+    {% else %}Master-Passwort (Argon2id · 64 MiB · 3 Durchläufe)<br><span class="muted small">nach Neustart manuell entsperren</span>{% endif %}</span>
+  <span class="k">Web-Login</span><span>Passwort (Argon2id-Hash), Sitzung 12 h</span>
+</div></div></div>
+<div class="card"><div class="hd"><h2>Gespeicherte Einträge</h2><span class="muted small">Werte nie im Klartext sichtbar</span></div>
+  {% for name, upd in entries %}
+    <div class="acc"><span class="mono" style="flex:1">{{ name }}</span><span class="i">{{ upd|ts("%d.%m.%Y") }}</span><span class="pill ok">verschlüsselt</span></div>
+  {% else %}<div class="empty">Noch keine Einträge.</div>{% endfor %}
+</div>
+</div>
+<div class="card"><div class="hd"><h2>Was liegt wo?</h2></div>
+<table>
+  <tr><th>Was</th><th>Wo</th><th>Geschützt</th></tr>
+  <tr><td>Bank, BLZ, FinTS-Adresse, Ordner, Zeitplan</td><td class="mono">config.yaml</td><td><span class="pill mute">kein Geheimnis</span></td></tr>
+  <tr><td>PIN, Login, FinTS-Sitzung, Produkt-ID, HA-Token</td><td class="mono">vault.db</td><td><span class="pill ok">AES-256-GCM</span></td></tr>
+  <tr><td>Schlüssel für den Tresor</td><td class="mono">Docker-Secret</td><td><span class="pill acc">nicht im Backup</span></td></tr>
+  <tr><td>Abgelegte Auszüge (Nr., Prüfsumme), Protokoll</td><td class="mono">state.db</td><td><span class="pill mute">kein Geheimnis</span></td></tr>
+  <tr><td>TANs / App-Freigaben</td><td>—</td><td><span class="pill err">nie gespeichert</span></td></tr>
+</table>
+<div class="sec small muted">Tipp: Sichere <span class="mono">/data</span> regelmäßig – aber die Schlüsseldatei getrennt davon. Wer nur das Backup hat, kann die Zugangsdaten nicht entschlüsseln.</div>
+</div>
+</div>
+{% endblock %}

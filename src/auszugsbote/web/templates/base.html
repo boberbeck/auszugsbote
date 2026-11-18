@@ -1,0 +1,32 @@
+{% from "_macros.html" import icon, logo %}<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Auszugsbote{% endblock %} · Auszugsbote</title>
+<link rel="stylesheet" href="/static/app.css"><script src="/static/htmx.min.js" defer></script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f6fed'/%3E%3Cpath d='M19 6h-9a1 1 0 0 0-1 1v18a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V10zM16 14v7M13 18l3 3 3-3' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+</head>
+<body hx-headers='{"X-CSRF-Token": "{{ csrf }}"}'>
+<div class="app">
+<aside class="side">
+  <div class="brand">{{ logo() }}<div><b>Auszugsbote</b><small>Kontoauszüge per FinTS</small></div></div>
+  {% set nav = [("/", "home", "Übersicht"), ("/auszuege", "doc", "Kontoauszüge"), ("/banken", "bank", "Bankzugänge"),
+                ("/ablage", "folder", "Ablage & Zeitplan"), ("/protokoll", "list", "Protokoll"),
+                ("/tresor", "lock", "Tresor"), ("/einstellungen", "gear", "Einstellungen")] %}
+  <nav class="nav">{% for href, ic, label in nav %}
+    <a href="{{ href }}" class="{{ 'on' if (request.url.path == href or (href != '/' and request.url.path.startswith(href))) }}">{{ icon(ic) }}{{ label }}</a>
+  {% endfor %}</nav>
+  <div class="foot">
+    {% if run and run.running %}<a class="row" style="color:#fff" hx-get="/laeufe/aktuell" hx-target="#run-slot" href="#"><span class="dot warn"></span>Abruf läuft …</a>{% endif %}
+    <div class="row"><span class="dot {{ '' if core.vault.unlocked else 'err' }}"></span>Tresor {{ "entsperrt" if core.vault.unlocked else "gesperrt" }}</div>
+    <div class="row"><span class="dot {{ '' if ablage_ok else 'err' }}"></span>Ablageordner {{ "erreichbar" if ablage_ok else "nicht erreichbar" }}</div>
+    <form method="post" action="/logout" class="row"><input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="row" style="background:none;border:0;color:#8592a8;font:inherit;cursor:pointer;padding:0">{{ icon("logout") }}Abmelden</button></form>
+    <div class="row" style="color:#5f6b80">v{{ version }} · python-fints 5.0.1</div>
+  </div>
+</aside>
+<main class="main">
+  {% if flash %}<div class="flash {{ flash.level }}">{{ icon("check" if flash.level == "ok" else "warn") }}{{ flash.text }}</div>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</div>
+<div id="run-slot">{% if run and run.running and show_run|default(true) %}{% include "_run.html" %}{% endif %}</div>
+</body></html>

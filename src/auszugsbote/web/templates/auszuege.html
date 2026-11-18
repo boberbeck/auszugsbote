@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% from "_macros.html" import icon %}
+{% block title %}Kontoauszüge{% endblock %}
+{% block content %}
+<div class="top"><div><h1>Kontoauszüge</h1><div class="sub">Alles, was Auszugsbote abgelegt hat</div></div>
+  <form method="get" style="display:flex;gap:10px">
+    <select class="inp" name="bank" onchange="this.form.submit()"><option value="">Alle Banken</option>
+      {% for b in cfg.banken %}<option value="{{ b.id }}" {{ "selected" if b.id == f_bank }}>{{ b.name }}</option>{% endfor %}</select>
+    <select class="inp" name="jahr" onchange="this.form.submit()"><option value="">Alle Jahre</option>
+      {% for y in years %}<option {{ "selected" if y == f_jahr }}>{{ y }}</option>{% endfor %}</select>
+  </form></div>
+<div class="card">
+  {% if rows %}
+  <table><tr><th>Abgerufen</th><th>Bank</th><th>Konto</th><th>Auszug</th><th>Zeitraum</th><th>Datei</th><th>Größe</th></tr>
+  {% for s in rows %}{% set b = cfg.bank(s.bank_id) %}
+    <tr><td>{{ s.fetched|ts("%d.%m.%Y %H:%M") }}</td><td><b>{{ b.name if b else s.bank_id }}</b></td><td class="mono">{{ s.iban|iban_mask }}</td>
+      <td>{{ "Nr. %02d/%d"|format(s.number, s.year) if s.kind == "pdf" else "Umsätze %02d/%d"|format(s.number, s.year) }}</td>
+      <td>{{ s.period_start or "" }}{{ " – " if s.period_end }}{{ s.period_end or "" }}</td>
+      <td class="mono">{{ s.relpath or "(Duplikat)" }}</td><td>{{ s.size|size }}</td></tr>
+  {% endfor %}</table>
+  {% else %}<div class="empty">Keine Einträge.</div>{% endif %}
+</div>
+{% endblock %}

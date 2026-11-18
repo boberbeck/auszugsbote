@@ -1,0 +1,73 @@
+{% extends "base.html" %}{% from "_macros.html" import icon, bank_badge %}
+{% block title %}Übersicht{% endblock %}
+{% block content %}
+<div class="top">
+  <div><h1>Übersicht</h1>
+    <div class="sub">Letzter Lauf {{ last_run.finished|ts if last_run else "—" }}{% if last_run %} ({{ last_run.status }}){% endif %}
+      · nächster Lauf {{ next_run|ts("%d.%m. %H:%M") if next_run else "nur manuell" }}</div></div>
+  <div style="display:flex;gap:10px">
+    <a class="btn" href="/auszuege">{{ icon("doc") }}Alle Auszüge</a>
+    <button class="btn pri" hx-post="/laeufe" hx-target="#run-slot" hx-swap="innerHTML">{{ icon("refresh") }}Jetzt abrufen</button>
+  </div>
+</div>
+
+{% if not cfg.banken %}
+  <div class="banner">{{ icon("warn") }}<div><b>Noch kein Bankzugang.</b> Lege einen an – zum Ausprobieren ohne Produkt-ID die Demobank.</div><a class="btn" href="/banken/neu">Bankzugang anlegen</a></div>
+{% elif not produkt_id and cfg.banken|selectattr("typ", "equalto", "fints")|list %}
+  <div class="banner">{{ icon("warn") }}<div><b>FinTS-Produkt-ID fehlt.</b> Ohne sie können echte Banken nicht abgerufen werden (Registrierung bei der Deutschen Kreditwirtschaft).</div><a class="btn" href="/einstellungen">Produkt-ID eintragen</a></div>
+{% endif %}
+
+<div class="kpis">
+  <div class="card kpi"><div class="l"><span class="dot"></span>Neue Auszüge · 30 Tage</div><div class="v">{{ neu_30 }}</div>
+    <div class="s">{% if letzte %}zuletzt {{ letzte[0].fetched|ts("%d.%m.%Y") }}{% else %}noch keine{% endif %}</div></div>
+  <div class="card kpi"><div class="l"><span class="dot"></span>Aktive Konten</div><div class="v">{{ aktiv }} <span style="font-size:15px;color:var(--ink3);font-weight:500">von {{ konten|length }}</span></div>
+    <div class="s">{{ cfg.banken|length }} Bankzugänge</div></div>
+  <div class="card kpi"><div class="l"><span class="dot {{ '' if ablage_ok else 'err' }}"></span>Zielordner</div>
+    <div class="v s mono">{{ cfg.ablage.anzeige_pfad or cfg.ablage.pfad }}</div><div class="s">{{ ablage_msg }}</div></div>
+  <div class="card kpi"><div class="l"><span class="dot {{ '' if next_run else 'mute' }}"></span>Nächster Lauf</div>
+    <div class="v">{{ next_run|ts("%H:%M") if next_run else "—" }}</div><div class="s">{{ (next_run|wochentag ~ ", " ~ next_run|ts("%d.%m.")) if next_run else "Zeitplan: nur manuell" }}</div></div>
+</div>
+
+<div class="cols w" style="margin-bottom:18px">
+  <div class="card">
+    <div class="hd"><h2>Konten</h2><a class="small" href="/banken">Bankzugänge verwalten</a></div>
+    {% for x in konten %}
+      <div class="acc">{{ bank_badge(x.bank) }}
+        <div><div class="n">{{ x.bank.name }} · {{ x.konto.name or "Konto" }}</div><div class="i mono">{{ x.konto.iban|iban_mask }}</div></div>
+        <div class="r">
+          {% if not x.konto.aktiv or not x.bank.aktiv %}<span class="pill mute">inaktiv</span>
+          {% elif x.test and x.test.ok %}
+            {% if x.test.caps.pdf_hkekp %}<span class="pill ok">PDF über HKEKP</span>
+            {% elif x.test.caps.pdf_hkeka %}<span class="pill ok">PDF über HKEKA</span>
+            {% elif x.test.caps.camt %}<span class="pill warn">nur Umsätze (camt)</span>
+            {% else %}<span class="pill err">kein Abruf möglich</span>{% endif %}
+          {% elif x.bank.typ == "demo" %}<span class="pill acc">Demo</span>
+          {% else %}<span class="pill mute">nicht getestet</span>{% endif %}
+          <span class="i">{% if x.last %}Auszug {{ "%02d"|format(x.last.number) }}/{{ x.last.year }} · {{ x.last.fetched|ts("%d.%m.") }}{% else %}noch nichts abgelegt{% endif %}</span>
+        </div>
+      </div>
+    {% else %}<div class="empty">Noch keine Konten. Nach dem ersten Verbindungstest erscheinen sie hier.</div>{% endfor %}
+  </div>
+  <div class="card">
+    <div class="hd"><h2>Freigegebener Ordner</h2><span class="pill {{ 'ok' if ablage_ok else 'err' }}"><span class="dot {{ '' if ablage_ok else 'err' }}"></span>{{ "verbunden" if ablage_ok else "nicht erreichbar" }}</span></div>
+    {% if baum %}<div class="tree"><span class="d">{{ cfg.ablage.anzeige_pfad or cfg.ablage.pfad }}</span>
+{% for pre, name, is_dir in baum %}{{ pre }}{% if is_dir %}<span class="d">{{ name }}</span>{% else %}{{ name }}{% endif %}
+{% endfor %}</div>{% else %}<div class="empty">Noch keine Dateien abgelegt.</div>{% endif %}
+    <div class="sec small"><div class="kv"><span class="k">Im Ordner gesamt</span><span><b>{{ gesamt }}</b> Dateien</span>
+      <span class="k">Schreibweise</span><span>atomar (temporär, dann umbenennen)</span>
+      <span class="k">Paperless</span><span>{{ "Kopie nach " ~ cfg.ablage.paperless_consume if cfg.ablage.paperless_consume else "aus" }}</span></div></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="hd"><h2>Zuletzt abgelegt</h2><span class="muted small">Duplikate werden über Auszugsnummer und SHA-256 erkannt</span></div>
+  {% if letzte %}
+  <table><tr><th>Abgerufen</th><th>Bank / Konto</th><th>Auszug</th><th>Datei im Ordner</th><th>Größe</th><th>Verfahren</th></tr>
+  {% for s in letzte %}{% set b = cfg.bank(s.bank_id) %}
+    <tr><td>{{ s.fetched|ts }}</td><td><b>{{ b.name if b else s.bank_id }}</b> · <span class="mono">…{{ s.iban[-4:] }}</span></td>
+      <td>{{ "Nr. %02d/%d"|format(s.number, s.year) if s.kind == "pdf" else "Umsätze %02d/%d"|format(s.number, s.year) }}</td>
+      <td class="mono">{{ s.relpath or "(Duplikat)" }}</td><td>{{ s.size|size }}</td><td><span class="pill mute">{{ s.method }}</span></td></tr>
+  {% endfor %}</table>
+  {% else %}<div class="empty">Noch nichts abgelegt. Starte mit „Jetzt abrufen“.</div>{% endif %}
+</div>
+{% endblock %}
